@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" role="img" aria-label="Dua orang sedang duduk saling bercerita">
+  <!-- Ambient lingkaran hangat -->
+  <circle cx="140" cy="114" r="98" fill="#F3EDE2"/>
+  <circle cx="140" cy="114" r="98" fill="none" stroke="#E8DFCE" stroke-width="1.5"/>
+
+  <!-- Bayangan duduk -->
+  <ellipse cx="86" cy="184" rx="44" ry="8" fill="#E8DFCE"/>
+  <ellipse cx="194" cy="184" rx="44" ry="8" fill="#E8DFCE"/>
+
+  <!-- Orang kiri — sedang bercerita -->
+  <circle cx="80" cy="64" r="16" fill="#A48E74"/>
+  <path d="M66 60 a16 16 0 0 1 28 0 c-1.5 -2.5 -26.5 -2.5 -28 0 Z" fill="#8C7660"/>
+  <path d="M80 80 C 98 80 116 98 116 126 C 116 148 102 162 82 162 L 50 162 C 43 162 41 156 43 147 C 50 120 58 90 80 80 Z" fill="#A48E74"/>
+  <circle cx="116" cy="119" r="7" fill="#8C7660"/>
+
+  <!-- Orang kanan — mendengarkan -->
+  <circle cx="200" cy="62" r="16" fill="#7C9A87"/>
+  <path d="M186 58 a16 16 0 0 1 28 0 c-1.5 -2.5 -26.5 -2.5 -28 0 Z" fill="#688570"/>
+  <path d="M200 78 C 182 78 168 96 168 124 C 168 147 182 162 200 162 L 232 162 C 239 162 241 156 239 147 C 232 120 222 90 200 78 Z" fill="#7C9A87"/>
+  <circle cx="176" cy="121" r="7" fill="#688570"/>
+
+  <!-- Gelembung obrolan -->
+  <path d="M104 18 h34 a8 8 0 0 1 8 8 v12 a8 8 0 0 1 -8 8 h-20 l-7 7 v-7 h-7 a8 8 0 0 1 -8 -8 v-12 a8 8 0 0 1 8 -8 Z" fill="#DCD2BE"/>
+  <circle cx="118" cy="28" r="2.4" fill="#A48E74"/>
+  <circle cx="128" cy="28" r="2.4" fill="#A48E74"/>
+  <circle cx="138" cy="28" r="2.4" fill="#A48E74"/>
+
+  <!-- Titik dekoratif -->
+  <circle cx="60" cy="22" r="2.6" fill="#D5B69B"/>
+  <circle cx="222" cy="24" r="2.4" fill="#A9BCAD"/>
+  <circle cx="34" cy="52" r="2" fill="#C9BBA8"/>
+  <circle cx="248" cy="50" r="2" fill="#C9BBA8"/>
+</svg>

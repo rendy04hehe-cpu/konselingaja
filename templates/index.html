@@ -1,0 +1,373 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teman Bicara — Ruang yang aman untuk didengarkan</title>
+    <meta name="description" content="Teman Bicara adalah ruang percakapan yang aman dan tenang. Ceritakan apa yang kamu rasakan, tanpa dihakimi, hanya didengarkan.">
+
+    <!-- Google Fonts: Inter and Newsreader -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+    <!-- ================================================
+         Landing Page
+         ================================================ -->
+    <main class="landing" id="landing-page" aria-label="Halaman utama Teman Bicara">
+
+        <!-- Top bar -->
+        <header class="landing-topbar" aria-label="Navigasi utama">
+            <div class="logo" aria-label="Logo Teman Bicara">
+                <span class="logo-dot" aria-hidden="true"></span>
+                <span class="logo-wordmark">Teman Bicara</span>
+            </div>
+
+            <!-- Nav links -->
+            <nav class="topbar-nav" aria-label="Menu">
+                <button
+                    class="nav-link-btn"
+                    id="btn-open-about"
+                    type="button"
+                    onclick="openModal('aboutModal')"
+                    aria-haspopup="dialog"
+                >
+                    Tentang
+                </button>
+                <span class="nav-sep" aria-hidden="true">·</span>
+                <button
+                    class="nav-link-btn"
+                    id="btn-open-terms"
+                    type="button"
+                    onclick="openModal('termsModal')"
+                    aria-haspopup="dialog"
+                >
+                    Ketentuan
+                </button>
+            </nav>
+        </header>
+
+        <!-- Konten utama -->
+        <div class="landing-content">
+
+            <!-- Kolom Teks -->
+            <div class="landing-text">
+                <p class="presence" aria-label="Status Teman Bicara">
+                    <span class="presence-dot" aria-hidden="true"></span>
+                    Siap mendengarkan
+                </p>
+
+                <h1 class="headline">
+                    Ada yang ingin <em>kamu ceritakan?</em>
+                </h1>
+
+                <p class="tagline">
+                    Tidak semua hal perlu diselesaikan hari ini. Kadang yang paling dibutuhkan hanyalah seseorang yang mendengarkan — tanpa terburu-buru, tanpa menghakimi.
+                </p>
+
+
+                <div class="cta-group">
+                    <button
+                        class="btn-primary"
+                        id="btn-mulai"
+                        type="button"
+                        onclick="openIdentityModal()"
+                        aria-haspopup="dialog"
+                    >
+                        Mulai bercerita
+                        <span class="btn-arrow" aria-hidden="true">&rarr;</span>
+                    </button>
+
+                    <p class="cta-note" role="note">
+                        Tanpa daftar &middot; Tanpa nama wajib &middot; Percakapan pribadi
+                    </p>
+                </div>
+            </div>
+
+            <!-- Kolom Visual (Mockup HP) -->
+            <div class="landing-visual">
+                <div class="phone-float">
+                    <div class="phone-mockup">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="phone-app-header">
+                                <span class="app-header-dot"></span>
+                                <div class="app-header-text">
+                                    <span class="app-header-name">Teman Bicara</span>
+                                    <span class="app-header-status">Aktif sekarang</span>
+                                </div>
+                            </div>
+                            <div class="chat-viewport">
+                                <div class="chat-slide-track">
+                                    <!-- Set 1 -->
+                                    <div class="chat-msg ai">Halo, selamat datang. Aku senang kamu meluangkan waktu untuk hadir di sini. Bagaimana kabarmu hari ini?</div>
+                                    <div class="chat-msg user">Aku ngerasa capek banget akhir-akhir ini...</div>
+                                    <div class="chat-msg ai">Aku mendengarmu. Rasa lelah itu pasti tidak mudah. Boleh ceritakan lebih lanjut apa yang membuatmu merasa begitu?</div>
+                                    <div class="chat-msg user">Kerjaan numpuk, dan rasanya nggak ada yang menghargai usahaku.</div>
+                                    <div class="chat-msg ai">Terima kasih sudah mempercayaiku dengan cerita ini. Merasa tidak dihargai itu menyakitkan. Kamu sudah berusaha keras, dan itu layak diakui.</div>
+                                    <div class="chat-msg user">Makasih ya... rasanya lega bisa cerita.</div>
+                                    <div class="chat-msg ai">Sama-sama. Aku selalu di sini kapan pun kamu butuh. Pelan-pelan saja, tidak perlu buru-buru.</div>
+                                    
+                                    <!-- Set 2 -->
+                                    <div class="chat-msg user">Kadang aku merasa sendiri, padahal di sekitarku banyak orang.</div>
+                                    <div class="chat-msg ai">Perasaan itu valid. Kesepian tidak selalu soal sendirian, tapi soal merasa tidak dipahami. Kamu tidak salah merasakan itu.</div>
+                                    <div class="chat-msg user">Iya, kayak nggak ada yang benar-benar ngerti.</div>
+                                    <div class="chat-msg ai">Aku ingin kamu tahu — di sini, kamu boleh jadi dirimu sendiri. Tanpa topeng, tanpa pura-pura baik-baik saja.</div>
+                                    
+                                    <!-- Set 3 (duplicate of set 1 for seamless loop) -->
+                                    <div class="chat-msg ai">Halo, selamat datang. Aku senang kamu meluangkan waktu untuk hadir di sini. Bagaimana kabarmu hari ini?</div>
+                                    <div class="chat-msg user">Aku ngerasa capek banget akhir-akhir ini...</div>
+                                    <div class="chat-msg ai">Aku mendengarmu. Rasa lelah itu pasti tidak mudah. Boleh ceritakan lebih lanjut apa yang membuatmu merasa begitu?</div>
+                                    <div class="chat-msg user">Kerjaan numpuk, dan rasanya nggak ada yang menghargai usahaku.</div>
+                                    <div class="chat-msg ai">Terima kasih sudah mempercayaiku dengan cerita ini. Merasa tidak dihargai itu menyakitkan. Kamu sudah berusaha keras, dan itu layak diakui.</div>
+                                    <div class="chat-msg user">Makasih ya... rasanya lega bisa cerita.</div>
+                                    <div class="chat-msg ai">Sama-sama. Aku selalu di sini kapan pun kamu butuh. Pelan-pelan saja, tidak perlu buru-buru.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="landing-footer" role="contentinfo">
+            <p class="disclaimer">
+                Teman Bicara adalah AI, bukan psikolog atau dokter. Jika kamu dalam kondisi darurat, segera hubungi orang yang kamu percaya, hotline kesehatan jiwa <a class="disclaimer-link" href="tel:119">119 ext. 8</a>, atau tenaga profesional.
+            </p>
+        </footer>
+
+    </main>
+
+
+    <!-- ================================================
+         Modal Identitas
+         ================================================ -->
+    <div class="modal fade" id="identityModal" tabindex="-1" role="dialog" aria-labelledby="modal-identity-heading" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content identity-card">
+                <div class="identity-inner">
+
+                    <div class="identity-head">
+                        <h2 class="identity-title" id="modal-identity-heading">Sebelum kita mulai</h2>
+                        <p class="identity-sub">
+                            Ceritakan sedikit tentang dirimu jika kamu mau. Semua opsional — kamu bisa langsung melanjutkan tanpa mengisi apa pun.
+                        </p>
+                    </div>
+
+                    <form id="identityForm" novalidate autocomplete="off">
+
+                        <div class="field-wrap">
+                            <label class="field-label" for="userName">Nama</label>
+                            <input type="text" class="field-input" id="userName" name="userName" placeholder="Bagaimana aku harus memanggilmu?" maxlength="100" autocomplete="off">
+                        </div>
+
+                        <div class="field-pair">
+                            <div class="field-wrap">
+                                <label class="field-label" for="userAge">Usia</label>
+                                <input type="number" class="field-input" id="userAge" name="userAge" placeholder="—" min="1" max="120" inputmode="numeric">
+                            </div>
+                            <div class="field-wrap">
+                                <label class="field-label" for="userGender">Jenis Kelamin</label>
+                                <select class="field-input field-select" id="userGender" name="userGender">
+                                    <option value="">—</option>
+                                    <option value="Laki-laki">Laki-laki</option>
+                                    <option value="Perempuan">Perempuan</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field-wrap">
+                            <label class="field-label" for="userJob">Pekerjaan</label>
+                            <input type="text" class="field-input" id="userJob" name="userJob" placeholder="Apa kesibukanmu saat ini?" maxlength="100">
+                        </div>
+
+                        <p class="identity-note" role="note">
+                            Apa pun yang kamu pilih, kamu tetap bisa mulai bercerita.
+                        </p>
+
+                    </form>
+
+                    <div class="identity-actions">
+                        <button class="btn-ghost" id="btn-skip" type="button" onclick="skipToChat()">Lewati</button>
+                        <button class="btn-solid" id="btn-continue" type="button" onclick="continueToChat()">Lanjut</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================================================
+         Modal Tentang
+         ================================================ -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="modal-about-heading" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen modal-info">
+            <div class="modal-content info-card">
+                <div class="info-inner">
+
+                    <!-- Header -->  
+                    <div class="info-head">
+                        <div class="info-logo">
+                            <span class="info-logo-dot" aria-hidden="true"></span>
+                            <span class="info-logo-name">Teman Bicara</span>
+                        </div>
+                        <button class="info-close" type="button" onclick="closeModal('aboutModal')" aria-label="Tutup">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Hero -->
+                    <div class="info-hero">
+                        <p class="info-eyebrow">Tentang</p>
+                        <h2 class="info-title" id="modal-about-heading">Ruang yang aman<br>untuk didengarkan.</h2>
+                        <p class="info-lead">
+                            Teman Bicara adalah ruang percakapan berbasis AI yang dirancang tenang, aman, dan tidak menghakimi — agar kamu bisa berbagi tanpa rasa takut.
+                        </p>
+                    </div>
+
+                    <!-- Meta cards -->
+                    <div class="info-meta-grid">
+                        <div class="info-meta-item">
+                            <p class="info-meta-label">Dibuat oleh</p>
+                            <p class="info-meta-value">Rendy Seftia Mandeky</p>
+                            <p class="info-meta-sub">NIM 2411102441104</p>
+                        </div>
+                        <div class="info-meta-item">
+                            <p class="info-meta-label">Institusi</p>
+                            <p class="info-meta-value">UMKT</p>
+                            <p class="info-meta-sub">Universitas Muhammadiyah Kalimantan Timur</p>
+                        </div>
+                        <div class="info-meta-item info-meta-item--full">
+                            <p class="info-meta-label">Tujuan</p>
+                            <p class="info-meta-value">Mahasiswa Berprestasi</p>
+                            <p class="info-meta-sub">Penelitian akhir dalam rangka memenuhi persyaratan Mahasiswa Berprestasi UMKT</p>
+                        </div>
+                    </div>
+
+                    <!-- Disclaimer -->
+                    <div class="info-disclaimer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="info-disclaimer-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <p>Aplikasi ini bukan pengganti layanan kesehatan mental profesional. Jika kamu membutuhkan dukungan lebih lanjut, pertimbangkan untuk berkonsultasi dengan psikolog.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================================================
+         Modal Ketentuan Penggunaan
+         ================================================ -->
+    <div class="modal fade" id="termsModal" tabindex="-1" role="dialog" aria-labelledby="modal-terms-heading" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen modal-info">
+            <div class="modal-content info-card">
+                <div class="info-inner">
+
+                    <!-- Header -->
+                    <div class="info-head">
+                        <div class="info-logo">
+                            <span class="info-logo-dot" aria-hidden="true"></span>
+                            <span class="info-logo-name">Teman Bicara</span>
+                        </div>
+                        <button class="info-close" type="button" onclick="closeModal('termsModal')" aria-label="Tutup">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Hero -->
+                    <div class="info-hero">
+                        <p class="info-eyebrow">Ketentuan Penggunaan</p>
+                        <h2 class="info-title" id="modal-terms-heading">Harap dibaca<br>sebelum memulai.</h2>
+                        <p class="info-lead">
+                            Dengan menggunakan Teman Bicara, kamu menyetujui ketentuan-ketentuan berikut ini.
+                        </p>
+                    </div>
+
+                    <!-- Terms list -->
+                    <div class="terms-list">
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">01</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Bukan Layanan Kesehatan Mental</h3>
+                                <p class="terms-body">Teman Bicara adalah AI companion, bukan psikolog atau tenaga medis. Respons AI tidak dapat digunakan sebagai diagnosis atau terapi klinis.</p>
+                            </div>
+                        </div>
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">02</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Batas Usia</h3>
+                                <p class="terms-body">Ditujukan untuk pengguna 13 tahun ke atas. Pengguna di bawah 18 tahun disarankan menggunakan dengan pengawasan orang tua.</p>
+                            </div>
+                        </div>
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">03</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Kondisi Darurat</h3>
+                                <p class="terms-body">Jika dalam situasi mengancam keselamatan, segera hubungi layanan darurat <strong>112</strong> atau hotline kesehatan jiwa <strong>119 ext. 8</strong>. Teman Bicara tidak dapat membantu situasi darurat.</p>
+                            </div>
+                        </div>
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">04</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Anonimitas &amp; Data</h3>
+                                <p class="terms-body">Identitas yang kamu masukkan bersifat opsional dan hanya dipakai sebagai konteks percakapan. Tidak ada data yang dikaitkan dengan identitas yang dapat diverifikasi.</p>
+                            </div>
+                        </div>
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">05</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Tanggung Jawab Pengguna</h3>
+                                <p class="terms-body">Pengguna bertanggung jawab atas konten yang disampaikan. Dilarang menggunakan untuk menyebarkan konten yang menyerang atau melanggar hukum.</p>
+                            </div>
+                        </div>
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">06</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Keterbatasan AI</h3>
+                                <p class="terms-body">Respons AI dihasilkan otomatis dan mungkin tidak selalu akurat. Gunakan penilaian pribadi dan konsultasikan ke profesional untuk keputusan penting.</p>
+                            </div>
+                        </div>
+
+                        <div class="terms-item">
+                            <div class="terms-num" aria-hidden="true">07</div>
+                            <div class="terms-content">
+                                <h3 class="terms-heading">Perubahan Ketentuan</h3>
+                                <p class="terms-body">Ketentuan dapat berubah sewaktu-waktu. Penggunaan berlanjut dianggap sebagai persetujuan terhadap ketentuan yang diperbarui.</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Footer note -->
+                    <p class="info-note">Terakhir diperbarui: Agustus 2026 &nbsp;·&nbsp; Teman Bicara oleh Rendy Seftia Mandeky</p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
