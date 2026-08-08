@@ -53,8 +53,8 @@ CONDITION_ANALYSIS_SYSTEM_PROMPT = (
     '  "condition": "salah satu label di atas",\n'
     '  "confidence": 0.0-1.0,\n'
     '  "recommend": true atau false,\n'
-    '  "reason": "satu kalimat singkat dalam bahasa Indonesia, '\n"
-    'contoh: pengguna menunjukkan tanda-tanda kesedihan yang menetap"\n'
+    '  "reason": "satu kalimat singkat dalam bahasa Indonesia, '
+    'contoh: pengguna menunjukkan tanda-tanda kesedihan yang menetap",\n'
     "}\n\n"
     "ATURAN:\n"
     "- 'recommend' hanya true jika polanya cukup konsisten dan berat."
@@ -261,5 +261,3 @@ def stream_chat_response(messages: List[Dict[str, str]]) -> Generator[str, None,
                 yield delta
     except Exception as e:
         yield f"\n\nMaaf, terjadi kesalahan: {str(e)}"
-  "reason": "",
-        }
