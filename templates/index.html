@@ -248,77 +248,51 @@
                     </div>
 
                     <form id="authForm" novalidate autocomplete="on">
-                        <!-- Track multi-langkah: 1 Akun, 2 Tentang dirimu, 3 Detail.
-                             Hanya tampil saat mode Daftar; JS mengatur visible/hidden. -->
-                        <div class="auth-steps" id="authSteps" hidden>
-                            <div class="auth-steps-track" id="authStepsTrack">
-
-                                <!-- Langkah 1: Akun -->
-                                <div class="auth-step" data-step="1">
-                                    <div class="field-wrap">
-                                        <label class="field-label" for="authUsername">Username</label>
-                                        <input type="text" class="field-input" id="authUsername" name="username" placeholder="Username" maxlength="150" autocomplete="username" required>
-                                    </div>
-
-                                    <div class="field-wrap">
-                                        <label class="field-label" for="authPassword">Password</label>
-                                        <input type="password" class="field-input" id="authPassword" name="password" placeholder="Minimal 8 karakter" autocomplete="new-password">
-                                    </div>
-
-                                    <p class="auth-step-hint">Langkah 1 dari 3 &middot; Akun</p>
-                                </div>
-
-                                <!-- Langkah 2: Profil dasar -->
-                                <div class="auth-step" data-step="2">
-                                    <div class="field-wrap">
-                                        <label class="field-label" for="authName">Nama</label>
-                                        <input type="text" class="field-input" id="authName" name="name" placeholder="Nama panggilan (opsional)" maxlength="100" autocomplete="name">
-                                    </div>
-
-                                    <div class="field-wrap">
-                                        <label class="field-label" for="authAge">Umur</label>
-                                        <input type="number" class="field-input" id="authAge" name="age" placeholder="Contoh: 22" min="10" max="100" inputmode="numeric">
-                                    </div>
-
-                                    <p class="auth-step-hint">Langkah 2 dari 3 &middot; Tentang dirimu</p>
-                                </div>
-
-                                <!-- Langkah 3: Detail -->
-                                <div class="auth-step" data-step="3">
-                                    <div class="field-wrap">
-                                        <label class="field-label" for="authGender">Jenis Kelamin</label>
-                                        <select class="field-input field-select" id="authGender" name="gender">
-                                            <option value="">—</option>
-                                            <option value="Laki-laki">Laki-laki</option>
-                                            <option value="Perempuan">Perempuan</option>
-                                            <option value="Lainnya">Lainnya</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="field-wrap">
-                                        <label class="field-label" for="authJob">Pekerjaan</label>
-                                        <input type="text" class="field-input" id="authJob" name="occupation" placeholder="Apa kesibukanmu saat ini?" maxlength="100">
-                                    </div>
-
-                                    <p class="auth-step-hint">Langkah 3 dari 3 &middot; Hampir selesai</p>
-                                </div>
-
-                            </div>
+                        <div class="field-wrap">
+                            <label class="field-label" for="authUsername">Username</label>
+                            <input type="text" class="field-input" id="authUsername" name="username" placeholder="Username" maxlength="150" autocomplete="username" required>
                         </div>
 
-                        <!-- Indikator slide — hanya tampil saat mode Daftar -->
-                        <div class="auth-steps-dots" id="authStepsDots" aria-hidden="true" hidden>
-                            <span class="auth-step-dot is-active" data-dot="1"></span>
-                            <span class="auth-step-dot" data-dot="2"></span>
-                            <span class="auth-step-dot" data-dot="3"></span>
+                        <div class="field-wrap">
+                            <label class="field-label" for="authPassword">Password</label>
+                            <input type="password" class="field-input" id="authPassword" name="password" placeholder="Minimal 8 karakter" autocomplete="current-password">
+                        </div>
+
+                        <!-- Kolom profil — hanya tampil saat mode Daftar -->
+                        <div id="registerProfileFields" class="register-profile-fields" hidden>
+                            <div class="field-wrap">
+                                <label class="field-label" for="authName">Nama</label>
+                                <input type="text" class="field-input" id="authName" name="name" placeholder="Nama panggilan (opsional)" maxlength="100" autocomplete="name">
+                            </div>
+
+                            <div class="field-pair">
+                                <div class="field-wrap">
+                                    <label class="field-label" for="authAge">Umur</label>
+                                    <input type="number" class="field-input" id="authAge" name="age" placeholder="—" min="10" max="100" inputmode="numeric">
+                                </div>
+                                <div class="field-wrap">
+                                    <label class="field-label" for="authGender">Jenis Kelamin</label>
+                                    <select class="field-input field-select" id="authGender" name="gender">
+                                        <option value="">—</option>
+                                        <option value="Laki-laki">Laki-laki</option>
+                                        <option value="Perempuan">Perempuan</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label" for="authJob">Pekerjaan</label>
+                                <input type="text" class="field-input" id="authJob" name="occupation" placeholder="Apa kesibukanmu saat ini?" maxlength="100">
+                            </div>
                         </div>
 
                         <p class="auth-error" id="authError" role="alert" aria-live="polite"></p>
                     </form>
 
                     <div class="identity-actions">
-                        <button class="btn-ghost" id="btn-toggle-auth-mode" type="button">Sudah punya akun? Masuk</button>
-                        <button class="btn-solid" id="btn-auth-submit" type="button">Lanjut</button>
+                        <button class="btn-ghost" id="btn-toggle-auth-mode" type="button">Daftar akun baru</button>
+                        <button class="btn-solid" id="btn-auth-submit" type="button">Masuk</button>
                     </div>
 
                     <p class="auth-alternative" role="note">

@@ -29,19 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Saat modal auth terbuka, fokus ke username & reset ke langkah 1
+    // Saat modal auth terbuka, fokus ke username
     const authModalEl = document.getElementById('authModal');
     if (authModalEl) {
         authModalEl.addEventListener('shown.bs.modal', () => {
             const usernameField = document.getElementById('authUsername');
             if (usernameField) usernameField.focus();
-            goAuthStep(1);
         });
 
         // Saat modal ditutup, kembalikan ke mode login agar tampilan
         // bersih saat dibuka kembali.
         authModalEl.addEventListener('hidden.bs.modal', () => {
-            if (authMode !== 'login') setAuthMode('login');
+            if (authMode !== 'login') toggleAuthMode();
         });
     }
 
@@ -177,15 +176,9 @@ function escapeHtml(text) {
  */
 let authMode = 'login';
 
-/** Jumlah langkah form daftar. */
-const REGISTER_TOTAL_STEPS = 3;
-
-/** Langkah aktif form daftar (1..3). */
-let registerStep = 1;
-
 /**
  * Toggle antara form Masuk dan Daftar.
- * Mode daftar memakai form multi-langkah yang bisa di-slide.
+ * Mode daftar menampilkan kolom profil tambahan pada satu form.
  */
 function toggleAuthMode() {
     const heading = document.getElementById('modal-auth-heading');
@@ -193,21 +186,17 @@ function toggleAuthMode() {
     const btnSubmit = document.getElementById('btn-auth-submit');
     const btnToggle = document.getElementById('btn-toggle-auth-mode');
     const passwordInput = document.getElementById('authPassword');
-    const steps = document.getElementById('authSteps');
-    const dots = document.getElementById('authStepsDots');
+    const profileFields = document.getElementById('registerProfileFields');
     const errorEl = document.getElementById('authError');
 
     if (authMode === 'login') {
         authMode = 'register';
         if (heading) heading.textContent = 'Daftar akun';
-        if (submitSub) submitSub.textContent = 'Daftar akun baru untuk menyimpan riwayat percakapanmu. Kami perlu beberapa informasi dasar untuk menyesuaikan percakapan.';
-        if (btnSubmit) btnSubmit.textContent = 'Lanjut';
+        if (submitSub) submitSub.textContent = 'Daftar akun baru untuk menyimpan riwayat percakapanmu. Kami perlu beberapa informasi dasar untuk menyesuaikan percakapanmu.';
+        if (btnSubmit) btnSubmit.textContent = 'Daftar';
         if (btnToggle) btnToggle.textContent = 'Sudah punya akun? Masuk';
         if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
-        if (steps) steps.hidden = false;
-        if (dots) dots.hidden = false;
-        registerStep = 1;
-        goAuthStep(1);
+        if (profileFields) profileFields.hidden = false;
     } else {
         authMode = 'login';
         if (heading) heading.textContent = 'Masuk';
@@ -215,84 +204,32 @@ function toggleAuthMode() {
         if (btnSubmit) btnSubmit.textContent = 'Masuk';
         if (btnToggle) btnToggle.textContent = 'Daftar akun baru';
         if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
-        if (steps) steps.hidden = true;
-        if (dots) dots.hidden = true;
+        if (profileFields) profileFields.hidden = true;
     }
 
     if (errorEl) errorEl.textContent = '';
 }
 
 /**
- * Set mode form auth ('login' | 'register') dan render ulang UI-nya.
+ * Validasi form daftar (satu halaman penuh).
+ * Kembalikan pesan error pertama atau null jika valid.
  */
-function setAuthMode(mode) {
-    if (mode === authMode) return;
-    toggleAuthMode();
-}
+function validateRegisterForm() {
+    const username = document.getElementById('authUsername')?.value.trim() || '';
+    const password = document.getElementById('authPassword')?.value || '';
+    const age = document.getElementById('authAge')?.value.trim() || '';
+    const gender = document.getElementById('authGender')?.value.trim() || '';
+    const occupation = document.getElementById('authJob')?.value.trim() || '';
 
-/**
- * Pindah slide form daftar ke langkah tertentu (1..3).
- * Track digeser horizontal sehingga setiap langkah tampil satu per satu.
- */
-function goAuthStep(step) {
-    const total = REGISTER_TOTAL_STEPS;
-    const target = Math.max(1, Math.min(total, step));
-    registerStep = target;
-
-    const track = document.getElementById('authStepsTrack');
-    if (track) {
-        track.style.transform = `translateX(-${(target - 1) * 100}%)`;
+    if (!username) return 'Mohon isi username.';
+    if (password.length < 8) return 'Password minimal 8 karakter.';
+    if (!age) return 'Umur wajib diisi.';
+    const ageNum = parseInt(age, 10);
+    if (isNaN(ageNum) || ageNum < 10 || ageNum > 100) {
+        return 'Umur harus antara 10–100 tahun.';
     }
-
-    // Indikator titik
-    const dots = document.querySelectorAll('.auth-step-dot');
-    dots.forEach(dot => {
-        const dotNum = parseInt(dot.getAttribute('data-dot'), 10);
-        dot.classList.toggle('is-active', dotNum === target);
-    });
-
-    // Tombol: "Lanjut" untuk langkah 1-2, "Daftar" di langkah terakhir
-    const btnSubmit = document.getElementById('btn-auth-submit');
-    if (btnSubmit) {
-        btnSubmit.textContent = target === total ? 'Daftar' : 'Lanjut';
-    }
-
-    // Fokus ke field pertama pada langkah baru
-    setTimeout(() => {
-        const stepEl = document.querySelector(`.auth-step[data-step="${target}"]`);
-        const firstInput = stepEl && stepEl.querySelector('.field-input');
-        if (firstInput) firstInput.focus();
-    }, 80);
-}
-
-/**
- * Validasi kolom pada langkah aktif. Kembalikan string error atau null.
- */
-function validateAuthStep(step) {
-    if (step === 1) {
-        const username = document.getElementById('authUsername')?.value.trim() || '';
-        const password = document.getElementById('authPassword')?.value || '';
-        if (!username) return 'Mohon isi username.';
-        if (password.length < 8) return 'Password minimal 8 karakter.';
-        return null;
-    }
-    if (step === 2) {
-        const age = document.getElementById('authAge')?.value.trim() || '';
-        if (age) {
-            const ageNum = parseInt(age, 10);
-            if (isNaN(ageNum) || ageNum < 10 || ageNum > 100) {
-                return 'Umur harus antara 10–100 tahun.';
-            }
-        }
-        return null;
-    }
-    if (step === 3) {
-        const gender = document.getElementById('authGender')?.value.trim() || '';
-        const occupation = document.getElementById('authJob')?.value.trim() || '';
-        if (!gender) return 'Jenis kelamin wajib diisi.';
-        if (!occupation) return 'Pekerjaan wajib diisi.';
-        return null;
-    }
+    if (!gender) return 'Jenis kelamin wajib diisi.';
+    if (!occupation) return 'Pekerjaan wajib diisi.';
     return null;
 }
 
@@ -422,9 +359,7 @@ async function submitRegister() {
  * Handler tombol submit form auth.
  *
  * - Mode login: langsung kirim login.
- * - Mode daftar: tombol "Lanjut" memvalidasi langkah aktif lalu menggeser
- *   ke langkah berikutnya; hanya di langkah terakhir tombol "Daftar" yang
- *   benar-benar mengirim registrasi.
+ * - Mode daftar: validasi seluruh form (satu halaman) lalu kirim registrasi.
  */
 function handleAuthSubmit() {
     const errorEl = document.getElementById('authError');
@@ -435,14 +370,9 @@ function handleAuthSubmit() {
         return;
     }
 
-    const error = validateAuthStep(registerStep);
+    const error = validateRegisterForm();
     if (error) {
         if (errorEl) errorEl.textContent = error;
-        return;
-    }
-
-    if (registerStep < REGISTER_TOTAL_STEPS) {
-        goAuthStep(registerStep + 1);
         return;
     }
 
