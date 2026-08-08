@@ -38,11 +38,28 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
+# Origin yang dipercaya untuk pemeriksaan CSRF (Django memakai daftar ini,
+# bukan ALLOWED_HOSTS). Default mencakup domain Railway produksi agar
+# register/login/simpan riwayat tidak ditolak oleh "Origin checking failed".
+# Bisa di-override via env CSRF_TRUSTED_ORIGINS (dipisah koma). Variabel
+# yang ada tapi kosong dianggap tidak diset → fallback ke default.
+_configured_origins = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://konselingaja-production.up.railway.app').strip()
+if not _configured_origins:
+    _configured_origins = 'https://konselingaja-production.up.railway.app'
+
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    for origin in _configured_origins.split(',')
     if origin.strip()
 ]
+
+# Railway menyediakan RAILWAY_PUBLIC_DOMAIN — tambahkan otomatis bila tersedia
+# (mis. domain berubah/kustom), selain nilai default di atas.
+_railway_public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+if _railway_public_domain:
+    _railway_origin = f'https://{_railway_public_domain}'
+    if _railway_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_railway_origin)
 
 
 # Application definition
