@@ -29,12 +29,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Saat modal auth terbuka, fokus ke username
+    // Saat modal auth terbuka, fokus ke username & reset ke langkah 1
     const authModalEl = document.getElementById('authModal');
     if (authModalEl) {
         authModalEl.addEventListener('shown.bs.modal', () => {
             const usernameField = document.getElementById('authUsername');
             if (usernameField) usernameField.focus();
+            goAuthStep(1);
+        });
+
+        // Saat modal ditutup, kembalikan ke mode login agar tampilan
+        // bersih saat dibuka kembali.
+        authModalEl.addEventListener('hidden.bs.modal', () => {
+            if (authMode !== 'login') setAuthMode('login');
         });
     }
 
@@ -170,8 +177,15 @@ function escapeHtml(text) {
  */
 let authMode = 'login';
 
+/** Jumlah langkah form daftar. */
+const REGISTER_TOTAL_STEPS = 3;
+
+/** Langkah aktif form daftar (1..3). */
+let registerStep = 1;
+
 /**
  * Toggle antara form Masuk dan Daftar.
+ * Mode daftar memakai form multi-langkah yang bisa di-slide.
  */
 function toggleAuthMode() {
     const heading = document.getElementById('modal-auth-heading');
@@ -179,17 +193,21 @@ function toggleAuthMode() {
     const btnSubmit = document.getElementById('btn-auth-submit');
     const btnToggle = document.getElementById('btn-toggle-auth-mode');
     const passwordInput = document.getElementById('authPassword');
-    const profileFields = document.getElementById('registerProfileFields');
+    const steps = document.getElementById('authSteps');
+    const dots = document.getElementById('authStepsDots');
     const errorEl = document.getElementById('authError');
 
     if (authMode === 'login') {
         authMode = 'register';
         if (heading) heading.textContent = 'Daftar akun';
         if (submitSub) submitSub.textContent = 'Daftar akun baru untuk menyimpan riwayat percakapanmu. Kami perlu beberapa informasi dasar untuk menyesuaikan percakapan.';
-        if (btnSubmit) btnSubmit.textContent = 'Daftar';
+        if (btnSubmit) btnSubmit.textContent = 'Lanjut';
         if (btnToggle) btnToggle.textContent = 'Sudah punya akun? Masuk';
         if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
-        if (profileFields) profileFields.hidden = false;
+        if (steps) steps.hidden = false;
+        if (dots) dots.hidden = false;
+        registerStep = 1;
+        goAuthStep(1);
     } else {
         authMode = 'login';
         if (heading) heading.textContent = 'Masuk';
@@ -197,10 +215,85 @@ function toggleAuthMode() {
         if (btnSubmit) btnSubmit.textContent = 'Masuk';
         if (btnToggle) btnToggle.textContent = 'Daftar akun baru';
         if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
-        if (profileFields) profileFields.hidden = true;
+        if (steps) steps.hidden = true;
+        if (dots) dots.hidden = true;
     }
 
     if (errorEl) errorEl.textContent = '';
+}
+
+/**
+ * Set mode form auth ('login' | 'register') dan render ulang UI-nya.
+ */
+function setAuthMode(mode) {
+    if (mode === authMode) return;
+    toggleAuthMode();
+}
+
+/**
+ * Pindah slide form daftar ke langkah tertentu (1..3).
+ * Track digeser horizontal sehingga setiap langkah tampil satu per satu.
+ */
+function goAuthStep(step) {
+    const total = REGISTER_TOTAL_STEPS;
+    const target = Math.max(1, Math.min(total, step));
+    registerStep = target;
+
+    const track = document.getElementById('authStepsTrack');
+    if (track) {
+        track.style.transform = `translateX(-${(target - 1) * 100}%)`;
+    }
+
+    // Indikator titik
+    const dots = document.querySelectorAll('.auth-step-dot');
+    dots.forEach(dot => {
+        const dotNum = parseInt(dot.getAttribute('data-dot'), 10);
+        dot.classList.toggle('is-active', dotNum === target);
+    });
+
+    // Tombol: "Lanjut" untuk langkah 1-2, "Daftar" di langkah terakhir
+    const btnSubmit = document.getElementById('btn-auth-submit');
+    if (btnSubmit) {
+        btnSubmit.textContent = target === total ? 'Daftar' : 'Lanjut';
+    }
+
+    // Fokus ke field pertama pada langkah baru
+    setTimeout(() => {
+        const stepEl = document.querySelector(`.auth-step[data-step="${target}"]`);
+        const firstInput = stepEl && stepEl.querySelector('.field-input');
+        if (firstInput) firstInput.focus();
+    }, 80);
+}
+
+/**
+ * Validasi kolom pada langkah aktif. Kembalikan string error atau null.
+ */
+function validateAuthStep(step) {
+    if (step === 1) {
+        const username = document.getElementById('authUsername')?.value.trim() || '';
+        const password = document.getElementById('authPassword')?.value || '';
+        if (!username) return 'Mohon isi username.';
+        if (password.length < 8) return 'Password minimal 8 karakter.';
+        return null;
+    }
+    if (step === 2) {
+        const age = document.getElementById('authAge')?.value.trim() || '';
+        if (age) {
+            const ageNum = parseInt(age, 10);
+            if (isNaN(ageNum) || ageNum < 10 || ageNum > 100) {
+                return 'Umur harus antara 10–100 tahun.';
+            }
+        }
+        return null;
+    }
+    if (step === 3) {
+        const gender = document.getElementById('authGender')?.value.trim() || '';
+        const occupation = document.getElementById('authJob')?.value.trim() || '';
+        if (!gender) return 'Jenis kelamin wajib diisi.';
+        if (!occupation) return 'Pekerjaan wajib diisi.';
+        return null;
+    }
+    return null;
 }
 
 /**
@@ -230,9 +323,9 @@ function storeAccountProfile(profile) {
 }
 
 /**
- * Kirim login/daftar ke backend lalu arahkan ke chat.
+ * Kirim login ke backend lalu arahkan ke chat.
  */
-async function handleAuthSubmit() {
+async function submitLogin() {
     const username = document.getElementById('authUsername').value.trim();
     const password = document.getElementById('authPassword').value;
     const errorEl = document.getElementById('authError');
@@ -243,30 +336,17 @@ async function handleAuthSubmit() {
         return;
     }
 
-    const endpoint = authMode === 'login'
-        ? '/api/chat/auth/login/'
-        : '/api/chat/auth/register/';
-
-    const body = { username, password };
-    if (authMode === 'register') {
-        const profile = collectRegisterProfile();
-        body.name = profile.name;
-        body.age = profile.age;
-        body.gender = profile.gender;
-        body.occupation = profile.occupation;
-    }
-
     if (btnSubmit) btnSubmit.disabled = true;
 
     try {
-        const res = await fetch(endpoint, {
+        const res = await fetch('/api/chat/auth/login/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCsrfToken(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify(body),
+            body: JSON.stringify({ username, password }),
         });
         const data = await res.json().catch(() => ({}));
 
@@ -287,6 +367,86 @@ async function handleAuthSubmit() {
     } finally {
         if (btnSubmit) btnSubmit.disabled = false;
     }
+}
+
+/**
+ * Kirim daftar akun ke backend lalu arahkan ke chat.
+ */
+async function submitRegister() {
+    const body = { username: '', password: '', name: '', age: '', gender: '', occupation: '' };
+    body.username = document.getElementById('authUsername').value.trim();
+    body.password = document.getElementById('authPassword').value;
+
+    const profile = collectRegisterProfile();
+    body.name = profile.name;
+    body.age = profile.age;
+    body.gender = profile.gender;
+    body.occupation = profile.occupation;
+
+    const errorEl = document.getElementById('authError');
+    const btnSubmit = document.getElementById('btn-auth-submit');
+
+    if (btnSubmit) btnSubmit.disabled = true;
+
+    try {
+        const res = await fetch('/api/chat/auth/register/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            if (errorEl) errorEl.textContent = data.detail || 'Terjadi kesalahan. Coba lagi.';
+            return;
+        }
+
+        // Berhasil — simpan profil akun lalu langsung menuju chat.
+        setCurrentAuthState(true);
+        if (modals['authModal']) modals['authModal'].hide();
+        renderLoggedInNav(body.username);
+        storeAccountProfile(data.profile);
+        window.location.href = 'chat.html';
+    } catch (err) {
+        if (errorEl) errorEl.textContent = 'Tidak dapat terhubung ke server.';
+    } finally {
+        if (btnSubmit) btnSubmit.disabled = false;
+    }
+}
+
+/**
+ * Handler tombol submit form auth.
+ *
+ * - Mode login: langsung kirim login.
+ * - Mode daftar: tombol "Lanjut" memvalidasi langkah aktif lalu menggeser
+ *   ke langkah berikutnya; hanya di langkah terakhir tombol "Daftar" yang
+ *   benar-benar mengirim registrasi.
+ */
+function handleAuthSubmit() {
+    const errorEl = document.getElementById('authError');
+    if (errorEl) errorEl.textContent = '';
+
+    if (authMode === 'login') {
+        submitLogin();
+        return;
+    }
+
+    const error = validateAuthStep(registerStep);
+    if (error) {
+        if (errorEl) errorEl.textContent = error;
+        return;
+    }
+
+    if (registerStep < REGISTER_TOTAL_STEPS) {
+        goAuthStep(registerStep + 1);
+        return;
+    }
+
+    submitRegister();
 }
 
 /**
