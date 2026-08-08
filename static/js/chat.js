@@ -194,12 +194,18 @@ class ChatApp {
         };
     }
 
-    init() {
+    async init() {
         this.setupTextarea();
         this.showThreadHeader();
-        this.showGreeting();
         this.exposeGlobals();
-        this.initAuthState();
+        // Auto-save saat keluar halaman (back, klik Kembali, tutup tab,
+        // pindah halaman) — percakapan terakhir otomatis masuk riwayat.
+        window.addEventListener('pagehide', () => this.onPageExit());
+        // Cek login dulu — auto-save hanya aktif untuk user login.
+        // `isLoggedIn` pasti terisi sebelum greeting muncul (12 detik max),
+        // jadi tidak ada race antara kirim pesan pertama dan status login.
+        await this.initAuthState();
+        this.showGreeting();
     }
 
     exposeGlobals() {
@@ -209,7 +215,6 @@ class ChatApp {
         window.dismissRecCard = () => this.dismissRecCard();
         window.showPsychologistInfo = () => this.showPsychologistInfo();
         window.closePsychologistInfo = () => this.closePsychologistInfo();
-        window.saveCurrentChat = () => this.saveCurrentChat();
         window.openHistoryDrawer = () => this.openHistoryDrawer();
         window.closeHistoryDrawer = () => this.closeHistoryDrawer();
         window.loadConversation = (id, title) => this.loadConversation(id, title);
@@ -217,15 +222,13 @@ class ChatApp {
         window.logoutChat = () => this.logoutChat();
     }
 
-    /** Cek status login, tampilkan tombol simpan bila sudah login. */
+    /** Cek status login. Auto-save aktif hanya untuk user login. */
     async initAuthState() {
-        const btnSave = document.getElementById('btn-save-chat');
         try {
             const res = await fetch('/api/chat/auth/me/', { credentials: 'same-origin' });
             const data = await res.json();
             if (data && data.authenticated) {
                 this.isLoggedIn = true;
-                if (btnSave) btnSave.hidden = false;
                 // Profil akun (nama, umur, jenis kelamin, pekerjaan) dipakai
                 // sebagai konteks percakapan. Kalau belum tersimpan di
                 // sessionStorage (mis. buka chat.html langsung), ambil dari server.
@@ -243,11 +246,9 @@ class ChatApp {
                 }
             } else {
                 this.isLoggedIn = false;
-                if (btnSave) btnSave.hidden = true;
             }
         } catch (err) {
             this.isLoggedIn = false;
-            if (btnSave) btnSave.hidden = true;
         }
     }
 
@@ -393,10 +394,6 @@ class ChatApp {
             });
             
             this.state.messages.push({ role: 'assistant', content: reply });
-            // Simpan otomatis & senyap bila user sudah login
-            if (this.isLoggedIn) {
-                this.saveCurrentChat({ silent: true });
-            }
         } catch (err) {
             this.removeTyping();
             this.addMessage('ai', `Terjadi kesalahan: ${err.message}. Silakan coba lagi.`);
@@ -486,8 +483,13 @@ class ChatApp {
         }
     }
 
-    startNewConversation() {
+    async startNewConversation() {
         if (!confirm('Mulai percakapan baru?')) return;
+
+        // Simpan otomatis percakapan lama sebelum memulai ruang baru,
+        // agar tetap masuk riwayat meski user belum menutup halaman.
+        await this.saveCurrentChat({ silent: true });
+
         this.state = this.getInitialState();
         this.service = new ChatService(this.state.sessionId, this.state.profile);
         this.dom.thread.innerHTML = '';
@@ -502,7 +504,7 @@ class ChatApp {
        =========================================== */
 
     /** Simpan percakapan berjalan ke akun user. */
-    async saveCurrentChat({ silent = false } = {}) {
+    async saveCurrentChat({ silent = false, keepalive = false } = {}) {
         if (!this.isLoggedIn) {
             if (!silent) window.location.href = '/';
             return false;
@@ -512,7 +514,7 @@ class ChatApp {
             return false;
         }
 
-        const saved = await this.saveToServer(this.state.sessionId);
+        const saved = await this.saveToServer(this.state.sessionId, keepalive);
         if (saved) {
             if (!silent) this.showToast('Percakapan disimpan.');
             return true;
@@ -524,7 +526,7 @@ class ChatApp {
         this.saveAttempted = true;
         this.state.sessionId = Utils.createSessionId();
         this.service = new ChatService(this.state.sessionId, this.state.profile);
-        const retried = await this.saveToServer(this.state.sessionId);
+        const retried = await this.saveToServer(this.state.sessionId, keepalive);
         if (retried) {
             if (!silent) this.showToast('Percakapan disimpan.');
         } else if (!silent) {
@@ -535,10 +537,7 @@ class ChatApp {
     }
 
     /** Kirim pesan sesi ke endpoint save. Mengembalikan true bila sukses. */
-    async saveToServer(sessionId) {
-        const btnSave = document.getElementById('btn-save-chat');
-        if (btnSave) btnSave.disabled = true;
-
+    async saveToServer(sessionId, keepalive = false) {
         const title = this.buildChatTitle();
 
         try {
@@ -549,6 +548,7 @@ class ChatApp {
                     'X-CSRFToken': Utils.getCsrfToken(),
                 },
                 credentials: 'same-origin',
+                keepalive: !!keepalive,
                 body: JSON.stringify({
                     session_id: sessionId,
                     title,
@@ -564,9 +564,17 @@ class ChatApp {
             return true;
         } catch (err) {
             return false;
-        } finally {
-            if (btnSave) btnSave.disabled = false;
         }
+    }
+
+    /** Auto-save saat halaman ditinggalkan/ditutup. */
+    onPageExit() {
+        if (this._exitSaveStarted) return;
+        this._exitSaveStarted = true;
+        // keepalive memastikan fetch tetap dikirim meski halaman sedang
+        // unload. Hasilnya tidak bisa ditunggu di sini — browser membersihkan
+        // halaman setelah unload.
+        this.saveCurrentChat({ silent: true, keepalive: true });
     }
 
     /** Judul otomatis dari pesan user pertama. */
@@ -761,6 +769,8 @@ class ChatApp {
 
     /** Keluar dari akun dan kembali ke halaman utama. */
     async logoutChat() {
+        // Simpan otomatis percakapan berjalan sebelum keluar akun.
+        await this.saveCurrentChat({ silent: true });
         try {
             await fetch('/api/chat/auth/logout/', {
                 method: 'POST',

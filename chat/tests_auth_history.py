@@ -248,6 +248,69 @@ class HistoryAPITests(TestCase):
         ids = [s["session_id"] for s in listing.data["sessions"]]
         self.assertIn(str(anon.id), ids)
 
+    def test_save_creates_session_with_client_generated_uuid(self):
+        """UUID baru dari frontend (belum pernah tersimpan) otomatis dibuat.
+
+        Regresi: sebelumnya UUID baru selalu 404 sehingga setiap penyimpanan
+        percakapan baru gagal. Frontend selalu mengirim UUID klien saat
+        percakapan baru dimulai — backend harus menerimanya.
+        """
+        self._login()
+        client_uuid = uuid.uuid4()
+
+        res = self.client.post(
+            "/api/chat/history/save/",
+            {
+                "session_id": str(client_uuid),
+                "title": "Cerita hari ini",
+                "messages": [{"role": "user", "content": "Aku capek."}],
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["session_id"], str(client_uuid))
+
+        session = Session.objects.get(id=client_uuid)
+        self.assertEqual(session.owner, self.user)
+        self.assertEqual(session.title, "Cerita hari ini")
+        self.assertEqual(
+            Message.objects.filter(conversation__session=session).count(), 1
+        )
+
+    def test_save_updates_client_generated_session_on_second_save(self):
+        """Penyimpanan kedua ke UUID yang sama menimpa pesan lama, bukan 404."""
+        self._login()
+        client_uuid = uuid.uuid4()
+
+        res1 = self.client.post(
+            "/api/chat/history/save/",
+            {
+                "session_id": str(client_uuid),
+                "messages": [{"role": "user", "content": "Halo"}],
+            },
+            format="json",
+        )
+        self.assertEqual(res1.status_code, 200)
+
+        res2 = self.client.post(
+            "/api/chat/history/save/",
+            {
+                "session_id": str(client_uuid),
+                "messages": [
+                    {"role": "user", "content": "Halo"},
+                    {"role": "assistant", "content": "Halo juga."},
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(res2.status_code, 200)
+
+        session = Session.objects.get(id=client_uuid)
+        self.assertEqual(session.owner, self.user)
+        self.assertEqual(
+            Message.objects.filter(conversation__session=session).count(), 2
+        )
+
     def test_save_others_session_rejected(self):
         """Sesi milik user lain tidak boleh ditimpa/diklaim."""
         theirs = self._create_session(owner=self.other, title="Punya orang lain")

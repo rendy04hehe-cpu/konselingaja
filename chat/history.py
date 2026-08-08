@@ -158,13 +158,16 @@ class HistorySaveAPIView(APIView):
 
     @staticmethod
     def _resolve_session(user, session_id: str, title: str):
-        """Kembalikan session milik user, atau buat jika baru.
+        """Kembalikan session milik user, atau buat jika belum ada.
 
         Aturan kepemilikan:
         - session_id kosong → buat session baru milik user.
         - session_id ada dan sudah milik user → pakai.
         - session_id ada tapi owner=None (sesi anonim yang dibuat endpoint
           analyze saat user belum login) → klaim, dipakai callernya.
+        - session_id berupa UUID baru yang belum pernah tersimpan → buat
+          session baru milik user dengan id tersebut. Ini normal: frontend
+          selalu mengirim UUID baru untuk percakapan yang baru dimulai.
         - session_id milik user lain atau bukan UUID valid → None (404).
         """
         if not session_id:
@@ -174,9 +177,23 @@ class HistorySaveAPIView(APIView):
             try:
                 return Session.objects.get(id=session_id, owner=user)
             except Session.DoesNotExist:
+                pass
+
+            try:
                 # Mungkin sesi anonim (owner=None) yang bisa diklaim.
                 return Session.objects.get(id=session_id, owner__isnull=True)
-        except (Session.DoesNotExist, ValueError, ValidationError):
+            except Session.DoesNotExist:
+                pass
+
+            # UUID sudah dipakai orang lain → jangan sentuh, 404.
+            if Session.objects.filter(id=session_id).exists():
+                return None
+
+            # UUID baru dari frontend yang belum pernah tersimpan.
+            return Session.objects.create(
+                id=session_id, owner=user, title=title or None
+            )
+        except (ValueError, ValidationError):
             return None
 
     @staticmethod
