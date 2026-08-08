@@ -199,6 +199,7 @@ class ChatApp {
         this.showThreadHeader();
         this.showGreeting();
         this.exposeGlobals();
+        this.initAuthState();
     }
 
     exposeGlobals() {
@@ -208,6 +209,31 @@ class ChatApp {
         window.dismissRecCard = () => this.dismissRecCard();
         window.showPsychologistInfo = () => this.showPsychologistInfo();
         window.closePsychologistInfo = () => this.closePsychologistInfo();
+        window.saveCurrentChat = () => this.saveCurrentChat();
+        window.openHistoryDrawer = () => this.openHistoryDrawer();
+        window.closeHistoryDrawer = () => this.closeHistoryDrawer();
+        window.loadConversation = (id, title) => this.loadConversation(id, title);
+        window.deleteHistoryItem = (id) => this.deleteHistoryItem(id);
+        window.logoutChat = () => this.logoutChat();
+    }
+
+    /** Cek status login, tampilkan tombol simpan bila sudah login. */
+    async initAuthState() {
+        const btnSave = document.getElementById('btn-save-chat');
+        try {
+            const res = await fetch('/api/chat/auth/me/', { credentials: 'same-origin' });
+            const data = await res.json();
+            if (data && data.authenticated) {
+                this.isLoggedIn = true;
+                if (btnSave) btnSave.hidden = false;
+            } else {
+                this.isLoggedIn = false;
+                if (btnSave) btnSave.hidden = true;
+            }
+        } catch (err) {
+            this.isLoggedIn = false;
+            if (btnSave) btnSave.hidden = true;
+        }
     }
 
     setupTextarea() {
@@ -234,7 +260,10 @@ class ChatApp {
     }
 
     addMessage(role, text) {
-        const { row, bubble } = UIRenderer.createMessageRow(role, text, role === 'ai');
+        // 'assistant' (dari server/history) dan 'ai' (bubble lokal) sama-sama
+        // dirender dengan gaya pesan AI.
+        const uiRole = role === 'assistant' ? 'ai' : role;
+        const { row, bubble } = UIRenderer.createMessageRow(uiRole, text, uiRole === 'ai');
         this.dom.thread.appendChild(row);
         this.scrollToBottom();
         return bubble;
@@ -349,6 +378,10 @@ class ChatApp {
             });
             
             this.state.messages.push({ role: 'assistant', content: reply });
+            // Simpan otomatis & senyap bila user sudah login
+            if (this.isLoggedIn) {
+                this.saveCurrentChat({ silent: true });
+            }
         } catch (err) {
             this.removeTyping();
             this.addMessage('ai', `Terjadi kesalahan: ${err.message}. Silakan coba lagi.`);
@@ -447,6 +480,300 @@ class ChatApp {
         this.closePsychologistInfo();
         this.showGreeting();
         this.dom.input.focus();
+    }
+
+    /* ===========================================
+       Riwayat Percakapan (login)
+       =========================================== */
+
+    /** Simpan percakapan berjalan ke akun user. */
+    async saveCurrentChat({ silent = false } = {}) {
+        if (!this.isLoggedIn) {
+            if (!silent) window.location.href = '/';
+            return false;
+        }
+        if (this.state.messages.length === 0) {
+            if (!silent) this.showToast('Belum ada percakapan untuk disimpan.');
+            return false;
+        }
+
+        const saved = await this.saveToServer(this.state.sessionId);
+        if (saved) {
+            if (!silent) this.showToast('Percakapan disimpan.');
+            return true;
+        }
+
+        // Session lama sudah dihapus/kedaluwarsa (404) — coba sekali lagi
+        // dengan session baru agar percakapan tetap tersimpan.
+        if (this.saveAttempted) return false;
+        this.saveAttempted = true;
+        this.state.sessionId = Utils.createSessionId();
+        this.service = new ChatService(this.state.sessionId, this.state.profile);
+        const retried = await this.saveToServer(this.state.sessionId);
+        if (retried) {
+            if (!silent) this.showToast('Percakapan disimpan.');
+        } else if (!silent) {
+            this.showToast('Gagal menyimpan percakapan.');
+        }
+        this.saveAttempted = false;
+        return retried;
+    }
+
+    /** Kirim pesan sesi ke endpoint save. Mengembalikan true bila sukses. */
+    async saveToServer(sessionId) {
+        const btnSave = document.getElementById('btn-save-chat');
+        if (btnSave) btnSave.disabled = true;
+
+        const title = this.buildChatTitle();
+
+        try {
+            const res = await fetch('/api/chat/history/save/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': Utils.getCsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    title,
+                    messages: this.state.messages,
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) return false;
+
+            // Ikuti session_id yang disimpan server
+            this.state.sessionId = data.session_id || sessionId;
+            return true;
+        } catch (err) {
+            return false;
+        } finally {
+            if (btnSave) btnSave.disabled = false;
+        }
+    }
+
+    /** Judul otomatis dari pesan user pertama. */
+    buildChatTitle() {
+        const firstUser = this.state.messages.find(m => m.role === 'user');
+        if (!firstUser) return 'Percakapan';
+        const text = firstUser.content.replace(/\s+/g, ' ').trim();
+        return text.length > 60 ? text.slice(0, 60) + '…' : text;
+    }
+
+    /** Buka drawer riwayat. */
+    async openHistoryDrawer() {
+        const overlay = document.getElementById('history-overlay');
+        const body = document.getElementById('history-body');
+        if (!overlay || !body) return;
+
+        // Cek login dulu
+        let authenticated = this.isLoggedIn;
+        if (!authenticated) {
+            try {
+                const res = await fetch('/api/chat/auth/me/', { credentials: 'same-origin' });
+                const data = await res.json();
+                authenticated = !!(data && data.authenticated);
+            } catch (err) {
+                authenticated = false;
+            }
+        }
+
+        overlay.classList.add('visible');
+        overlay.setAttribute('aria-hidden', 'false');
+
+        if (!authenticated) {
+            body.innerHTML = `
+                <div class="history-login-prompt">
+                    <p>Masuk untuk melihat dan menyimpan riwayat percakapanmu.</p>
+                    <a class="history-login-btn" href="/">Masuk</a>
+                </div>
+            `;
+            return;
+        }
+
+        body.innerHTML = '<div class="history-empty">Memuat...' + '</div>';
+
+        try {
+            const res = await fetch('/api/chat/history/', { credentials: 'same-origin' });
+            const data = await res.json().catch(() => ({}));
+            const sessions = (data && data.sessions) || [];
+
+            if (sessions.length === 0) {
+                body.innerHTML = '<div class="history-empty">Belum ada percakapan tersimpan.</div>';
+                return;
+            }
+
+            body.innerHTML = '';
+            sessions.forEach(s => {
+                body.appendChild(this.createHistoryItem(s));
+            });
+        } catch (err) {
+            body.innerHTML = '<div class="history-empty">Gagal memuat riwayat.</div>';
+        }
+    }
+
+    createHistoryItem(session) {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+
+        const main = document.createElement('div');
+        main.className = 'history-item-main';
+
+        const title = document.createElement('div');
+        title.className = 'history-item-title';
+        title.textContent = session.title || 'Percakapan';
+
+        const meta = document.createElement('div');
+        meta.className = 'history-item-meta';
+        const date = session.updated_at
+            ? new Date(session.updated_at).toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'short', year: 'numeric'
+              })
+            : '';
+        const count = session.message_count || 0;
+        meta.textContent = `${date} · ${count} pesan`;
+
+        main.appendChild(title);
+        main.appendChild(meta);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'history-item-delete';
+        delBtn.type = 'button';
+        delBtn.setAttribute('aria-label', 'Hapus percakapan');
+        delBtn.textContent = '×';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.deleteHistoryItem(session.session_id, item);
+        };
+
+        const openHandler = () => this.loadConversation(session.session_id, session.title);
+        item.addEventListener('click', openHandler);
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openHandler();
+            }
+        });
+
+        item.appendChild(main);
+        item.appendChild(delBtn);
+        return item;
+    }
+
+    /** Muat satu percakapan dari server ke thread. */
+    async loadConversation(sessionId, title) {
+        try {
+            const res = await fetch(`/api/chat/history/${sessionId}/`, {
+                credentials: 'same-origin',
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                this.showToast(data.detail || 'Gagal memuat percakapan.');
+                return;
+            }
+
+            // Isi state dengan riwayat yang diambil
+            this.state.messages = (data.messages || []).filter(m => m.content);
+            this.state.sessionId = data.session_id || sessionId;
+            this.state.analysisTriggered = true; // jangan re-run analisis
+
+            this.dom.thread.innerHTML = '';
+            this.dismissRecCard();
+            this.closePsychologistInfo();
+
+            // Header thread
+            this.showThreadHeader();
+
+            if (this.state.messages.length === 0) {
+                this.showGreeting();
+            } else {
+                this.state.messages.forEach(m => {
+                    this.addMessage(m.role, m.content);
+                });
+            }
+
+            this.closeHistoryDrawer();
+            this.dom.input.focus();
+        } catch (err) {
+            this.showToast('Tidak dapat terhubung ke server.');
+        }
+    }
+
+    /** Hapus satu percakapan. */
+    async deleteHistoryItem(sessionId, itemEl) {
+        if (!confirm('Hapus percakapan ini?')) return;
+
+        try {
+            const res = await fetch(`/api/chat/history/${sessionId}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': Utils.getCsrfToken() },
+                credentials: 'same-origin',
+            });
+
+            if (!res.ok) {
+                this.showToast('Gagal menghapus percakapan.');
+                return;
+            }
+
+            if (itemEl) {
+                itemEl.remove();
+            } else {
+                this.openHistoryDrawer();
+            }
+        } catch (err) {
+            this.showToast('Tidak dapat terhubung ke server.');
+        }
+    }
+
+    closeHistoryDrawer() {
+        const overlay = document.getElementById('history-overlay');
+        if (overlay) {
+            overlay.classList.remove('visible');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    /** Tampilkan/sembunyikan tombol keluar di footer drawer. */
+    setHistoryFoot(visible) {
+        const foot = document.getElementById('history-foot');
+        if (foot) foot.hidden = !visible;
+    }
+
+    /** Keluar dari akun dan kembali ke halaman utama. */
+    async logoutChat() {
+        try {
+            await fetch('/api/chat/auth/logout/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': Utils.getCsrfToken() },
+                credentials: 'same-origin',
+            });
+        } catch (err) {
+            // Tetap arahkan ke beranda meskipun jaringan bermasalah
+        }
+        window.location.href = '/';
+    }
+
+    /** Toast kecil untuk umpan balik non-intrusif. */
+    showToast(message) {
+        const existing = document.querySelector('.save-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'save-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => toast.classList.add('visible'));
+
+        setTimeout(() => {
+            toast.classList.remove('visible');
+            setTimeout(() => toast.remove(), 260);
+        }, 2200);
     }
 }
 

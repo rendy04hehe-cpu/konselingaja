@@ -10,12 +10,12 @@ const modals = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     // Inisialisasi semua modal sekaligus
-    ['identityModal', 'aboutModal', 'termsModal'].forEach(id => {
+    ['identityModal', 'aboutModal', 'termsModal', 'authModal', 'historyWarningModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             modals[id] = new bootstrap.Modal(el, {
                 backdrop: true,
-                keyboard: id !== 'identityModal', // About & Terms bisa ditutup ESC
+                keyboard: id !== 'identityModal', // About, Terms & Auth bisa ditutup ESC
             });
         }
     });
@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Saat modal auth terbuka, fokus ke username
+    const authModalEl = document.getElementById('authModal');
+    if (authModalEl) {
+        authModalEl.addEventListener('shown.bs.modal', () => {
+            const usernameField = document.getElementById('authUsername');
+            if (usernameField) usernameField.focus();
+        });
+    }
+
     // Tekan Enter di dalam form = Lanjut
     const identityForm = document.getElementById('identityForm');
     if (identityForm) {
@@ -37,7 +46,270 @@ document.addEventListener('DOMContentLoaded', () => {
             continueToChat();
         });
     }
+
+    // Submit form auth (login/daftar)
+    const authForm = document.getElementById('authForm');
+    if (authForm) {
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleAuthSubmit();
+        });
+    }
+
+    // Tombol ganti mode login/daftar
+    const btnToggleAuthMode = document.getElementById('btn-toggle-auth-mode');
+    if (btnToggleAuthMode) {
+        btnToggleAuthMode.addEventListener('click', toggleAuthMode);
+    }
+
+    // Tombol submit auth
+    const btnAuthSubmit = document.getElementById('btn-auth-submit');
+    if (btnAuthSubmit) {
+        btnAuthSubmit.addEventListener('click', handleAuthSubmit);
+    }
+
+    // Cek status login saat halaman dimuat
+    initAuth();
 });
+
+/**
+ * Status login terkini. Disinkronkan oleh initAuth(), handleAuthSubmit(),
+ * dan logout(). Dipakai handleStartTelling() agar tidak fetch ulang.
+ * @type {boolean|null} null = belum diketahui (masih loading)
+ */
+let currentAuthState = null;
+
+/**
+ * Simpan status login terakhir yang diketahui.
+ */
+function setCurrentAuthState(authenticated) {
+    currentAuthState = authenticated;
+}
+
+/** ===========================================
+   AUTH — Login / Logout Landing Page
+   =========================================== */
+
+/**
+ * Ambil nilai cookie CSRF (dipasang oleh Django via ensure_csrf_cookie).
+ */
+function getCsrfToken() {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+}
+
+/**
+ * Cek status login via /api/chat/auth/me/ lalu render tombol di topbar.
+ */
+async function initAuth() {
+    const navAuth = document.getElementById('nav-auth');
+    if (!navAuth) return;
+
+    const loginBtn = document.getElementById('btn-open-login');
+    navAuth.setAttribute('data-auth', 'loading');
+
+    try {
+        const res = await fetch('/api/chat/auth/me/', { credentials: 'same-origin' });
+        const data = await res.json();
+
+        if (data && data.authenticated) {
+            setCurrentAuthState(true);
+            renderLoggedInNav(data.username);
+        } else {
+            setCurrentAuthState(false);
+            renderLoggedOutNav();
+        }
+    } catch (err) {
+        setCurrentAuthState(false);
+        // Jaringan error — tampilkan tombol "Masuk" saja agar tidak mengunci halaman
+        navAuth.setAttribute('data-auth', 'logged-out');
+        if (loginBtn) loginBtn.style.display = '';
+    }
+}
+
+function renderLoggedOutNav() {
+    const navAuth = document.getElementById('nav-auth');
+    if (!navAuth) return;
+
+    navAuth.setAttribute('data-auth', 'logged-out');
+    navAuth.innerHTML = `
+        <button
+            class="nav-link-btn"
+            type="button"
+            onclick="openModal('authModal')"
+            aria-haspopup="dialog"
+        >
+            Masuk
+        </button>
+    `;
+}
+
+function renderLoggedInNav(username) {
+    const navAuth = document.getElementById('nav-auth');
+    if (!navAuth) return;
+
+    navAuth.setAttribute('data-auth', 'logged-in');
+    navAuth.innerHTML = `
+        <span class="nav-auth-username" title="${escapeHtml(username)}">${escapeHtml(username)}</span>
+        <button class="nav-auth-logout" type="button" onclick="logout()">Keluar</button>
+    `;
+}
+
+/**
+ * Escape HTML untuk mencegah XSS saat merender username.
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Mode form auth: 'login' atau 'register'.
+ * @type {'login' | 'register'}
+ */
+let authMode = 'login';
+
+/**
+ * Toggle antara form Masuk dan Daftar.
+ */
+function toggleAuthMode() {
+    const heading = document.getElementById('modal-auth-heading');
+    const btnSubmit = document.getElementById('btn-auth-submit');
+    const btnToggle = document.getElementById('btn-toggle-auth-mode');
+    const passwordInput = document.getElementById('authPassword');
+    const errorEl = document.getElementById('authError');
+
+    if (authMode === 'login') {
+        authMode = 'register';
+        if (heading) heading.textContent = 'Daftar akun';
+        if (btnSubmit) btnSubmit.textContent = 'Daftar';
+        if (btnToggle) btnToggle.textContent = 'Sudah punya akun? Masuk';
+        if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
+    } else {
+        authMode = 'login';
+        if (heading) heading.textContent = 'Masuk';
+        if (btnSubmit) btnSubmit.textContent = 'Masuk';
+        if (btnToggle) btnToggle.textContent = 'Daftar akun baru';
+        if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+    }
+
+    if (errorEl) errorEl.textContent = '';
+}
+
+/**
+ * Kirim login/daftar ke backend lalu refresh tombol topbar.
+ */
+async function handleAuthSubmit() {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorEl = document.getElementById('authError');
+    const btnSubmit = document.getElementById('btn-auth-submit');
+
+    if (!username || !password) {
+        if (errorEl) errorEl.textContent = 'Mohon isi username dan password.';
+        return;
+    }
+
+    const endpoint = authMode === 'login'
+        ? '/api/chat/auth/login/'
+        : '/api/chat/auth/register/';
+
+    if (btnSubmit) btnSubmit.disabled = true;
+
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            if (errorEl) errorEl.textContent = data.detail || 'Terjadi kesalahan. Coba lagi.';
+            return;
+        }
+
+        // Berhasil — tutup modal & render tombol login/logout
+        setCurrentAuthState(true);
+        if (modals['authModal']) modals['authModal'].hide();
+        renderLoggedInNav(username);
+    } catch (err) {
+        if (errorEl) errorEl.textContent = 'Tidak dapat terhubung ke server.';
+    } finally {
+        if (btnSubmit) btnSubmit.disabled = false;
+    }
+}
+
+/**
+ * Keluar dari sesi lalu kembali ke tampilan awal.
+ */
+async function logout() {
+    try {
+        await fetch('/api/chat/auth/logout/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+            credentials: 'same-origin',
+        });
+    } catch (err) {
+        // Tetap render tampilan logout meskipun jaringan bermasalah
+    }
+    setCurrentAuthState(false);
+    renderLoggedOutNav();
+}
+
+/**
+ * Handler tombol "Mulai bercerita".
+ *
+ * Jika user belum login (atau status login belum diketahui), tampilkan
+ * peringatan bahwa riwayat tidak akan tersimpan. User bisa memilih
+ * "Lanjut tanpa login" atau "Masuk / Daftar".
+ */
+async function handleStartTelling() {
+    // Cek login secara pasti sebelum memutuskan
+    let authenticated = currentAuthState;
+    if (authenticated === null) {
+        try {
+            const res = await fetch('/api/chat/auth/me/', { credentials: 'same-origin' });
+            const data = await res.json();
+            authenticated = !!(data && data.authenticated);
+            setCurrentAuthState(authenticated);
+            if (authenticated) {
+                renderLoggedInNav(data.username);
+            }
+        } catch (err) {
+            authenticated = false;
+        }
+    }
+
+    if (authenticated) {
+        openIdentityModal();
+        return;
+    }
+
+    if (modals['historyWarningModal']) {
+        modals['historyWarningModal'].show();
+    } else {
+        // Fallback bila modal tidak tersedia — langsung buka identitas.
+        openIdentityModal();
+    }
+}
+
+/** Lanjut tanpa login — tutup peringatan lalu buka form identitas. */
+function continueAnonymous() {
+    if (modals['historyWarningModal']) modals['historyWarningModal'].hide();
+    openIdentityModal();
+}
+
+/** Buka form login/daftar dari peringatan. */
+function openAuthForStart() {
+    if (modals['historyWarningModal']) modals['historyWarningModal'].hide();
+    if (modals['authModal']) modals['authModal'].show();
+}
 
 /**
  * Membuka modal identitas ketika tombol "Mulai bercerita" diklik.

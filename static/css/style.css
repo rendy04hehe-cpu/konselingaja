@@ -1122,6 +1122,97 @@ button {
 }
 
 /* ==========================================================================
+   Auth — Nav & Modal
+   ========================================================================== */
+.nav-auth {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Teks username di topbar saat sudah login */
+.nav-auth-username {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--secondary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-auth-logout {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--secondary);
+  border-radius: var(--radius-pill);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.nav-auth-logout:hover {
+  color: var(--ink);
+  background-color: var(--hover-bg);
+}
+
+/* Pesan error / state pada form auth */
+.auth-error {
+  min-height: 1.25rem;
+  font-size: 0.8125rem;
+  color: #B91C1C;
+  line-height: 1.5;
+  margin-top: -0.25rem;
+}
+
+.auth-error.is-hidden {
+  visibility: hidden;
+}
+
+.auth-alternative {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  line-height: 1.6;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ==========================================================================
+   Warning Box (Modal Peringatan Riwayat)
+   ========================================================================== */
+.warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.125rem 1.125rem;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+}
+
+.warning-box-icon {
+  flex-shrink: 0;
+  color: #B45309;
+  margin-top: 1px;
+}
+
+.warning-box-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #92400E;
+  line-height: 1.4;
+}
+
+.warning-box-text {
+  font-size: 0.8125rem;
+  color: #B45309;
+  line-height: 1.6;
+  margin-top: 3px;
+}
+
+/* ==========================================================================
    Reduced Motion
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

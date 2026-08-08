@@ -52,6 +52,19 @@
                 >
                     Ketentuan
                 </button>
+                <span class="nav-sep" aria-hidden="true">·</span>
+                <!-- Auth area: ditambah/diubah oleh JS sesuai status login -->
+                <div class="nav-auth" id="nav-auth" data-auth="loading">
+                    <button
+                        class="nav-link-btn"
+                        id="btn-open-login"
+                        type="button"
+                        onclick="openModal('authModal')"
+                        aria-haspopup="dialog"
+                    >
+                        Masuk
+                    </button>
+                </div>
             </nav>
         </header>
 
@@ -79,7 +92,7 @@
                         class="btn-primary"
                         id="btn-mulai"
                         type="button"
-                        onclick="openIdentityModal()"
+                        onclick="handleStartTelling()"
                         aria-haspopup="dialog"
                     >
                         Mulai bercerita
@@ -202,6 +215,108 @@
                         <button class="btn-ghost" id="btn-skip" type="button" onclick="skipToChat()">Lewati</button>
                         <button class="btn-solid" id="btn-continue" type="button" onclick="continueToChat()">Lanjut</button>
                     </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================================================
+         Modal Autentikasi (Login / Daftar)
+         ================================================ -->
+    <div class="modal fade" id="authModal" tabindex="-1" role="dialog" aria-labelledby="modal-auth-heading" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content identity-card">
+                <div class="identity-inner">
+
+                    <div class="info-head">
+                        <div class="info-logo">
+                            <span class="info-logo-dot" aria-hidden="true"></span>
+                            <span class="info-logo-name">Teman Bicara</span>
+                        </div>
+                        <button class="info-close" type="button" onclick="closeModal('authModal')" aria-label="Tutup">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="identity-head">
+                        <h2 class="identity-title" id="modal-auth-heading">Masuk</h2>
+                        <p class="identity-sub">
+                            Masuk untuk menyimpan riwayat percakapanmu. Kamu bisa membukanya kembali kapan saja.
+                        </p>
+                    </div>
+
+                    <form id="authForm" novalidate autocomplete="on">
+                        <div class="field-wrap">
+                            <label class="field-label" for="authUsername">Username</label>
+                            <input type="text" class="field-input" id="authUsername" name="username" placeholder="Username" maxlength="150" autocomplete="username" required>
+                        </div>
+
+                        <div class="field-wrap">
+                            <label class="field-label" for="authPassword">Password</label>
+                            <input type="password" class="field-input" id="authPassword" name="password" placeholder="Password" autocomplete="current-password">
+                        </div>
+
+                        <p class="auth-error" id="authError" role="alert" aria-live="polite"></p>
+                    </form>
+
+                    <div class="identity-actions">
+                        <button class="btn-ghost" id="btn-toggle-auth-mode" type="button">Daftar akun baru</button>
+                        <button class="btn-solid" id="btn-auth-submit" type="button">Masuk</button>
+                    </div>
+
+                    <p class="auth-alternative" role="note">
+                        Tahap ini opsional. Tanpa login, kamu tetap bisa bercerita — hanya saja tidak tersimpan.
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================================================
+         Modal Peringatan Riwayat (user belum login)
+         ================================================ -->
+    <div class="modal fade" id="historyWarningModal" tabindex="-1" role="dialog" aria-labelledby="modal-history-warning-heading" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content identity-card">
+                <div class="identity-inner">
+
+                    <div class="info-head">
+                        <div class="info-logo">
+                            <span class="info-logo-dot" aria-hidden="true"></span>
+                            <span class="info-logo-name">Teman Bicara</span>
+                        </div>
+                        <button class="info-close" type="button" onclick="closeModal('historyWarningModal')" aria-label="Tutup">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="identity-head">
+                        <h2 class="identity-title" id="modal-history-warning-heading">Percakapanmu tidak akan tersimpan</h2>
+                        <p class="identity-sub">
+                            Kamu belum masuk akun. Tanpa login, riwayat percakapanmu tidak bisa disimpan untuk dibuka kembali di lain waktu.
+                        </p>
+                    </div>
+
+                    <div class="warning-box" role="note">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="warning-box-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <div>
+                            <p class="warning-box-title">Masuk untuk menyimpan riwayat</p>
+                            <p class="warning-box-text">Daftar atau masuk dulu untuk menyimpan percakapanmu dan membukanya kembali kapan saja.</p>
+                        </div>
+                    </div>
+
+                    <div class="identity-actions">
+                        <button class="btn-ghost" id="btn-continue-anonymous" type="button" onclick="continueAnonymous()">Lanjut tanpa login</button>
+                        <button class="btn-solid" id="btn-go-login" type="button" onclick="openAuthForStart()">Masuk / Daftar</button>
+                    </div>
+
+                    <p class="auth-alternative" role="note">
+                        Kamu tetap bisa bercerita tanpa login — percakapan berjalan seperti biasa, hanya saja tidak tersimpan.
+                    </p>
 
                 </div>
             </div>
