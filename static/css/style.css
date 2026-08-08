@@ -1180,6 +1180,18 @@ button {
 }
 
 /* ==========================================================================
+   Register Profile Fields (Modal Auth — mode Daftar)
+   ========================================================================== */
+.register-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 1.125rem;
+  margin-top: 0.25rem;
+}
+
+/* ==========================================================================
    Warning Box (Modal Peringatan Riwayat)
    ========================================================================== */
 .warning-box {

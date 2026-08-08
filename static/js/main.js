@@ -175,30 +175,62 @@ let authMode = 'login';
  */
 function toggleAuthMode() {
     const heading = document.getElementById('modal-auth-heading');
+    const submitSub = document.getElementById('modal-auth-sub');
     const btnSubmit = document.getElementById('btn-auth-submit');
     const btnToggle = document.getElementById('btn-toggle-auth-mode');
     const passwordInput = document.getElementById('authPassword');
+    const profileFields = document.getElementById('registerProfileFields');
     const errorEl = document.getElementById('authError');
 
     if (authMode === 'login') {
         authMode = 'register';
         if (heading) heading.textContent = 'Daftar akun';
+        if (submitSub) submitSub.textContent = 'Daftar akun baru untuk menyimpan riwayat percakapanmu. Kami perlu beberapa informasi dasar untuk menyesuaikan percakapan.';
         if (btnSubmit) btnSubmit.textContent = 'Daftar';
         if (btnToggle) btnToggle.textContent = 'Sudah punya akun? Masuk';
         if (passwordInput) passwordInput.setAttribute('autocomplete', 'new-password');
+        if (profileFields) profileFields.hidden = false;
     } else {
         authMode = 'login';
         if (heading) heading.textContent = 'Masuk';
+        if (submitSub) submitSub.textContent = 'Masuk untuk menyimpan riwayat percakapanmu. Kamu bisa membukanya kembali kapan saja.';
         if (btnSubmit) btnSubmit.textContent = 'Masuk';
         if (btnToggle) btnToggle.textContent = 'Daftar akun baru';
         if (passwordInput) passwordInput.setAttribute('autocomplete', 'current-password');
+        if (profileFields) profileFields.hidden = true;
     }
 
     if (errorEl) errorEl.textContent = '';
 }
 
 /**
- * Kirim login/daftar ke backend lalu refresh tombol topbar.
+ * Ambil nilai profil dari form daftar.
+ */
+function collectRegisterProfile() {
+    return {
+        name: document.getElementById('authName')?.value.trim() || '',
+        age: document.getElementById('authAge')?.value.trim() || '',
+        gender: document.getElementById('authGender')?.value.trim() || '',
+        occupation: document.getElementById('authJob')?.value.trim() || '',
+    };
+}
+
+/**
+ * Simpan profil akun ke sessionStorage sebagai konteks percakapan.
+ */
+function storeAccountProfile(profile) {
+    if (!profile) return;
+    sessionStorage.setItem('userProfile', JSON.stringify({
+        name: profile.name || '',
+        age: profile.age != null ? profile.age : '',
+        gender: profile.gender || '',
+        occupation: profile.occupation || '',
+        isAnonymous: false,
+    }));
+}
+
+/**
+ * Kirim login/daftar ke backend lalu arahkan ke chat.
  */
 async function handleAuthSubmit() {
     const username = document.getElementById('authUsername').value.trim();
@@ -215,6 +247,15 @@ async function handleAuthSubmit() {
         ? '/api/chat/auth/login/'
         : '/api/chat/auth/register/';
 
+    const body = { username, password };
+    if (authMode === 'register') {
+        const profile = collectRegisterProfile();
+        body.name = profile.name;
+        body.age = profile.age;
+        body.gender = profile.gender;
+        body.occupation = profile.occupation;
+    }
+
     if (btnSubmit) btnSubmit.disabled = true;
 
     try {
@@ -225,7 +266,7 @@ async function handleAuthSubmit() {
                 'X-CSRFToken': getCsrfToken(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
 
@@ -234,10 +275,13 @@ async function handleAuthSubmit() {
             return;
         }
 
-        // Berhasil — tutup modal & render tombol login/logout
+        // Berhasil — simpan profil akun lalu langsung menuju chat.
+        // Pengguna yang sudah login TIDAK perlu mengisi form identitas lagi.
         setCurrentAuthState(true);
         if (modals['authModal']) modals['authModal'].hide();
         renderLoggedInNav(username);
+        storeAccountProfile(data.profile);
+        window.location.href = 'chat.html';
     } catch (err) {
         if (errorEl) errorEl.textContent = 'Tidak dapat terhubung ke server.';
     } finally {
@@ -280,6 +324,7 @@ async function handleStartTelling() {
             setCurrentAuthState(authenticated);
             if (authenticated) {
                 renderLoggedInNav(data.username);
+                storeAccountProfile(data.profile);
             }
         } catch (err) {
             authenticated = false;
@@ -287,7 +332,19 @@ async function handleStartTelling() {
     }
 
     if (authenticated) {
-        openIdentityModal();
+        // Pengguna sudah login → langsung menuju chat, TIDAK perlu
+        // mengisi form identitas lagi. Profil akun sudah tersimpan di
+        // sessionStorage; kalau belum, ambil dari server.
+        if (!sessionStorage.getItem('userProfile')) {
+            try {
+                const res = await fetch('/api/chat/auth/me/', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (data && data.profile) storeAccountProfile(data.profile);
+            } catch (err) {
+                // Profil kosong pun chat tetap berjalan.
+            }
+        }
+        window.location.href = 'chat.html';
         return;
     }
 

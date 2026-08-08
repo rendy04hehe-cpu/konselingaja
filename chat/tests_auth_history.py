@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import Message, Session
+from .models import AccountProfile, Message, Session
 
 
 class AuthAPITests(TestCase):
@@ -30,10 +30,22 @@ class AuthAPITests(TestCase):
         )
         self.assertEqual(res.status_code, 400)
 
+    def _valid_register_payload(self, **overrides):
+        payload = {
+            "username": "userbaru",
+            "password": "password123",
+            "name": "Rina",
+            "age": 22,
+            "gender": "Perempuan",
+            "occupation": "Mahasiswa",
+        }
+        payload.update(overrides)
+        return payload
+
     def test_register_creates_user_and_logs_in(self):
         res = self.client.post(
             "/api/chat/auth/register/",
-            {"username": "userbaru", "password": "password123"},
+            self._valid_register_payload(),
             format="json",
         )
         self.assertEqual(res.status_code, 201)
@@ -44,11 +56,69 @@ class AuthAPITests(TestCase):
         self.assertTrue(me.data["authenticated"])
         self.assertEqual(me.data["username"], "userbaru")
 
+    def test_register_saves_account_profile(self):
+        res = self.client.post(
+            "/api/chat/auth/register/",
+            self._valid_register_payload(),
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+
+        profile = AccountProfile.objects.get(
+            user__username="userbaru"
+        )
+        self.assertEqual(profile.name, "Rina")
+        self.assertEqual(profile.age, 22)
+        self.assertEqual(profile.gender, "Perempuan")
+        self.assertEqual(profile.occupation, "Mahasiswa")
+        self.assertEqual(res.data["profile"]["age"], 22)
+
+    def test_register_requires_profile_fields(self):
+        """Register wajib umur, jenis kelamin, dan pekerjaan."""
+        res = self.client.post(
+            "/api/chat/auth/register/",
+            {
+                "username": "userbaru",
+                "password": "password123",
+                "name": "Rina",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(User.objects.filter(username="userbaru").exists())
+
+    def test_register_rejects_invalid_age(self):
+        res = self.client.post(
+            "/api/chat/auth/register/",
+            self._valid_register_payload(age=5),
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(User.objects.filter(username="userbaru").exists())
+
+    def test_me_returns_profile(self):
+        self.client.post(
+            "/api/chat/auth/register/",
+            self._valid_register_payload(),
+            format="json",
+        )
+        me = self.client.get("/api/chat/auth/me/")
+        self.assertTrue(me.data["authenticated"])
+        self.assertEqual(me.data["profile"]["name"], "Rina")
+        self.assertEqual(me.data["profile"]["age"], 22)
+        self.assertEqual(me.data["profile"]["gender"], "Perempuan")
+        self.assertEqual(me.data["profile"]["occupation"], "Mahasiswa")
+
     def test_register_duplicate_username_rejected(self):
         User.objects.create_user(username="sama", password="password123")
         res = self.client.post(
             "/api/chat/auth/register/",
-            {"username": "SAMA", "password": "password123"},
+            self._valid_register_payload(
+                username="SAMA",
+                age=22,
+                gender="Perempuan",
+                occupation="Mahasiswa",
+            ),
             format="json",
         )
         self.assertEqual(res.status_code, 400)

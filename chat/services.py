@@ -240,9 +240,22 @@ def build_chat_system_instruction(profile: Optional[Dict[str, Any]] = None) -> s
         " menyebutkan bahwa berbicara dengan psikolog atau psikiater bisa sangat membantu —"
         " bukan sebagai diagnosis, tapi sebagai bentuk kepedulian tulus."
     )
-    name = profile.get('name') if profile else None
-    if name:
-        instruction += f"\n\nPengguna saat ini bernama: {name}."
+    if profile:
+        details = []
+        if profile.get('name'):
+            details.append(f"nama: {profile.get('name')}")
+        if profile.get('age'):
+            details.append(f"usia: {profile.get('age')} tahun")
+        if profile.get('gender'):
+            details.append(f"jenis kelamin: {profile.get('gender')}")
+        if profile.get('occupation'):
+            details.append(f"pekerjaan: {profile.get('occupation')}")
+        if details:
+            instruction += (
+                "\n\nProfil pengguna saat ini: "
+                + ", ".join(details)
+                + ". Gunakan konteks ini secara wajar tanpa menyinggungnya secara berlebihan."
+            )
     return instruction
 
 def stream_chat_response(messages: List[Dict[str, str]]) -> Generator[str, None, None]:

@@ -242,7 +242,7 @@
 
                     <div class="identity-head">
                         <h2 class="identity-title" id="modal-auth-heading">Masuk</h2>
-                        <p class="identity-sub">
+                        <p class="identity-sub" id="modal-auth-sub">
                             Masuk untuk menyimpan riwayat percakapanmu. Kamu bisa membukanya kembali kapan saja.
                         </p>
                     </div>
@@ -256,6 +256,35 @@
                         <div class="field-wrap">
                             <label class="field-label" for="authPassword">Password</label>
                             <input type="password" class="field-input" id="authPassword" name="password" placeholder="Password" autocomplete="current-password">
+                        </div>
+
+                        <!-- Kolom profil — hanya tampil saat mode Daftar -->
+                        <div id="registerProfileFields" class="register-profile-fields" hidden>
+                            <div class="field-wrap">
+                                <label class="field-label" for="authName">Nama</label>
+                                <input type="text" class="field-input" id="authName" name="name" placeholder="Nama panggilan (opsional)" maxlength="100" autocomplete="name">
+                            </div>
+
+                            <div class="field-pair">
+                                <div class="field-wrap">
+                                    <label class="field-label" for="authAge">Umur</label>
+                                    <input type="number" class="field-input" id="authAge" name="age" placeholder="—" min="10" max="100" inputmode="numeric">
+                                </div>
+                                <div class="field-wrap">
+                                    <label class="field-label" for="authGender">Jenis Kelamin</label>
+                                    <select class="field-input field-select" id="authGender" name="gender">
+                                        <option value="">—</option>
+                                        <option value="Laki-laki">Laki-laki</option>
+                                        <option value="Perempuan">Perempuan</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="field-wrap">
+                                <label class="field-label" for="authJob">Pekerjaan</label>
+                                <input type="text" class="field-input" id="authJob" name="occupation" placeholder="Apa kesibukanmu saat ini?" maxlength="100">
+                            </div>
                         </div>
 
                         <p class="auth-error" id="authError" role="alert" aria-live="polite"></p>

@@ -226,6 +226,21 @@ class ChatApp {
             if (data && data.authenticated) {
                 this.isLoggedIn = true;
                 if (btnSave) btnSave.hidden = false;
+                // Profil akun (nama, umur, jenis kelamin, pekerjaan) dipakai
+                // sebagai konteks percakapan. Kalau belum tersimpan di
+                // sessionStorage (mis. buka chat.html langsung), ambil dari server.
+                if (data.profile && !sessionStorage.getItem('userProfile')) {
+                    const accountProfile = {
+                        name: data.profile.name || '',
+                        age: data.profile.age != null ? data.profile.age : '',
+                        gender: data.profile.gender || '',
+                        occupation: data.profile.occupation || '',
+                        isAnonymous: false,
+                    };
+                    sessionStorage.setItem('userProfile', JSON.stringify(accountProfile));
+                    this.state.profile = accountProfile;
+                    this.service = new ChatService(this.state.sessionId, this.state.profile);
+                }
             } else {
                 this.isLoggedIn = false;
                 if (btnSave) btnSave.hidden = true;
